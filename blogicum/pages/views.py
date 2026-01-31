@@ -1,8 +1,7 @@
 from django.shortcuts import render
 from django.views.generic import TemplateView, CreateView
 from django.urls import reverse_lazy
-
-from blog.forms import CustomUserCreationForm
+from django.contrib.auth.forms import UserCreationForm
 
 
 class AboutView(TemplateView):
@@ -20,7 +19,7 @@ class RulesView(TemplateView):
 class RegistrationView(CreateView):
     """Страница регистрации."""
 
-    form_class = CustomUserCreationForm
+    form_class = UserCreationForm
     template_name = 'registration/registration_form.html'
     success_url = reverse_lazy('blog:index')
 

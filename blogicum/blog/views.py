@@ -14,15 +14,24 @@ from .models import Post, Category, Comment
 User = get_user_model()
 
 
-def get_published_posts():
+def get_published_posts(queryset=None, use_select_related=True, use_annotate=True):
     """Получить опубликованные посты с фильтрацией."""
-    return Post.objects.select_related(
-        'author', 'location', 'category'
-    ).filter(
+    if queryset is None:
+        queryset = Post.objects.all()
+    
+    if use_select_related:
+        queryset = queryset.select_related('author', 'location', 'category')
+    
+    queryset = queryset.filter(
         is_published=True,
         pub_date__lte=timezone.now(),
         category__is_published=True
-    ).annotate(comment_count=Count('comments')).order_by('-pub_date')
+    )
+    
+    if use_annotate:
+        queryset = queryset.annotate(comment_count=Count('comments'))
+    
+    return queryset.order_by('-pub_date')
 
 
 class IndexListView(ListView):
@@ -53,7 +62,7 @@ class PostDetailView(DetailView):
         
         # Иначе проверяем публикацию
         return get_object_or_404(
-            get_published_posts(),
+            get_published_posts(use_select_related=False, use_annotate=False),
             pk=self.kwargs['post_id']
         )
 
@@ -79,12 +88,7 @@ class CategoryPostsListView(ListView):
             slug=self.kwargs['category_slug'],
             is_published=True
         )
-        return self.category.posts.select_related(
-            'author', 'location'
-        ).filter(
-            is_published=True,
-            pub_date__lte=timezone.now()
-        ).annotate(comment_count=Count('comments')).order_by('-pub_date')
+        return get_published_posts(queryset=self.category.posts.all())
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
